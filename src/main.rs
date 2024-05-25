@@ -3,8 +3,8 @@ use std::{
     any::Any,
     io::{stdin, stdout, Write},
 };
-
-static ALLOCATORS: [(&'static str, fn() -> Box<dyn Any>); 9] = [
+type Allocator = (&'static str, fn() -> Box<dyn Any>);
+static ALLOCATORS: [Allocator; 9] = [
     ("Stack allocation 1M", alloc::stack_allocate::<1>),
     //
     ("Heap zeroed 1M", alloc::heap_zero::<1>),
@@ -134,7 +134,7 @@ mod alloc {
         let mut file = tempfile().unwrap();
         let stride = vec![0u8; 1024];
         for _ in 0..(SIZE_M * 1024 * 1024) / stride.len() {
-            file.write(&stride).unwrap();
+            file.write_all(&stride).unwrap();
         }
         let mmap = unsafe { MmapOptions::new().map(&file).unwrap() };
         Box::new(mmap)
