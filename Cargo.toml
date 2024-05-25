@@ -1,5 +1,5 @@
 [package]
-name = "mem-insignt"
+name = "mem-insight"
 version = "0.1.0"
 edition = "2021"
 
