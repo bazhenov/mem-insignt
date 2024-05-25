@@ -1,5 +1,5 @@
 [package]
-name = "mem-stat-sandbox"
+name = "mem-insignt"
 version = "0.1.0"
 edition = "2021"
 
