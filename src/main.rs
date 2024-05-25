@@ -116,20 +116,28 @@ mod alloc {
         Box::new(Stack(barrier, Some(join_handle)))
     }
 
+    /// Allocates zeroed memory on the heap
     pub(super) fn heap_zero<const SIZE_M: usize>() -> Box<dyn Any> {
         Box::new(vec![0u8; SIZE_M * 1024 * 1024])
     }
 
+    /// Allocates memory on the heap initialized with non-zero value
+    ///
+    /// It matters, because on some OSes zeored memory might not be resident
     pub(super) fn heap_non_zero<const SIZE_M: usize>() -> Box<dyn Any> {
         let data = vec![42u8; SIZE_M * 1024 * 1024];
         Box::new(data)
     }
 
+    /// Alocated uninitialized memory on the heap
     pub(super) fn heap_uninit<const SIZE_M: usize>() -> Box<dyn Any> {
         let data = vec![MaybeUninit::<u8>::uninit(); SIZE_M * 1024 * 1024];
         Box::new(data)
     }
 
+    /// Memmory map a file of the given size
+    ///
+    /// File is removed immediately
     pub(super) fn mmap<const SIZE_M: usize>() -> Box<dyn Any> {
         let mut file = tempfile().unwrap();
         let stride = vec![0u8; 1024];
