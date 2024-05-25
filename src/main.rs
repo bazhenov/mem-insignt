@@ -155,6 +155,7 @@ mod alloc {
         Box::new(mmap)
     }
 
+    /// Memory map anonymous memory of the given size
     pub(super) fn mmap_anon<const SIZE_M: usize>() -> Box<dyn Any> {
         let mmap = MmapOptions::new()
             .len(SIZE_M * MEGABYTES)
@@ -163,6 +164,7 @@ mod alloc {
         Box::new(mmap)
     }
 
+    /// Memory map anonymous unitialized allocation
     pub(super) fn mmap_anon_init<const SIZE_M: usize>() -> Box<dyn Any> {
         let size = SIZE_M * MEGABYTES;
         let mut mmap = MmapOptions::new().len(size).map_anon().unwrap();
