@@ -4,7 +4,7 @@ use std::{
     io::{stdin, stdout, Write},
 };
 type Allocator = (&'static str, fn() -> Box<dyn Any>);
-static ALLOCATORS: [Allocator; 9] = [
+static ALLOCATORS: [Allocator; 13] = [
     ("Stack allocation 1M", alloc::stack_allocate::<1>),
     //
     ("Heap zeroed 1M", alloc::heap_zero::<1>),
@@ -16,8 +16,14 @@ static ALLOCATORS: [Allocator; 9] = [
     ("Heap uninitialized 1M", alloc::heap_uninit::<1>),
     ("Heap uninitialized 10M", alloc::heap_uninit::<10>),
     //
-    ("Memory mapped 1M", alloc::mmap::<10>),
-    ("Memory mapped 10M", alloc::mmap::<10>),
+    ("File mmap 1M", alloc::mmap_file::<1>),
+    ("File mmap 10M", alloc::mmap_file::<10>),
+    //
+    ("Anonymous mmap 1M", alloc::mmap_anon::<1>),
+    ("Anonymous mmap 10M", alloc::mmap_anon::<10>),
+    //
+    ("Anonymous mmap dirty 1M", alloc::mmap_anon_init::<1>),
+    ("Anonymous mmap dirty 10M", alloc::mmap_anon_init::<10>),
 ];
 
 fn main() {
@@ -77,16 +83,17 @@ fn main() {
 }
 
 mod alloc {
+    use memmap::MmapOptions;
     use std::{
         any::Any,
         io::Write,
         mem::MaybeUninit,
         sync::{Arc, Barrier},
         thread::{self, JoinHandle},
+        usize,
     };
-
-    use memmap::MmapOptions;
     use tempfile::tempfile;
+    const MEGABYTES: usize = 1024 * 1204;
 
     pub(super) struct Allocation(pub &'static str, #[allow(unused)] pub Box<dyn Any>);
 
@@ -107,7 +114,7 @@ mod alloc {
         let join_handle = {
             let barrier = Arc::clone(&barrier);
             thread::spawn(move || {
-                let v = vec![42u8; SIZE_M * 1024 * 1024];
+                let v = vec![42u8; SIZE_M * MEGABYTES];
                 barrier.wait();
                 // Needed to prevent variable to optimize out
                 v.into_iter().sum::<u8>()
@@ -118,33 +125,48 @@ mod alloc {
 
     /// Allocates zeroed memory on the heap
     pub(super) fn heap_zero<const SIZE_M: usize>() -> Box<dyn Any> {
-        Box::new(vec![0u8; SIZE_M * 1024 * 1024])
+        Box::new(vec![0u8; SIZE_M * MEGABYTES])
     }
 
     /// Allocates memory on the heap initialized with non-zero value
     ///
     /// It matters, because on some OSes zeored memory might not be resident
     pub(super) fn heap_non_zero<const SIZE_M: usize>() -> Box<dyn Any> {
-        let data = vec![42u8; SIZE_M * 1024 * 1024];
+        let data = vec![42u8; SIZE_M * MEGABYTES];
         Box::new(data)
     }
 
     /// Alocated uninitialized memory on the heap
     pub(super) fn heap_uninit<const SIZE_M: usize>() -> Box<dyn Any> {
-        let data = vec![MaybeUninit::<u8>::uninit(); SIZE_M * 1024 * 1024];
+        let data = vec![MaybeUninit::<u8>::uninit(); SIZE_M * MEGABYTES];
         Box::new(data)
     }
 
     /// Memmory map a file of the given size
     ///
     /// File is removed immediately
-    pub(super) fn mmap<const SIZE_M: usize>() -> Box<dyn Any> {
+    pub(super) fn mmap_file<const SIZE_M: usize>() -> Box<dyn Any> {
         let mut file = tempfile().unwrap();
         let stride = vec![0u8; 1024];
         for _ in 0..(SIZE_M * 1024 * 1024) / stride.len() {
             file.write_all(&stride).unwrap();
         }
         let mmap = unsafe { MmapOptions::new().map(&file).unwrap() };
+        Box::new(mmap)
+    }
+
+    pub(super) fn mmap_anon<const SIZE_M: usize>() -> Box<dyn Any> {
+        let mmap = MmapOptions::new()
+            .len(SIZE_M * MEGABYTES)
+            .map_anon()
+            .unwrap();
+        Box::new(mmap)
+    }
+
+    pub(super) fn mmap_anon_init<const SIZE_M: usize>() -> Box<dyn Any> {
+        let size = SIZE_M * MEGABYTES;
+        let mut mmap = MmapOptions::new().len(size).map_anon().unwrap();
+        mmap[..size].fill(42);
         Box::new(mmap)
     }
 }
