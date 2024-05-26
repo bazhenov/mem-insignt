@@ -83,6 +83,7 @@ fn main() {
 }
 
 mod alloc {
+    use alloca::with_alloca_zeroed;
     use memmap::MmapOptions;
     use std::{
         any::Any,
@@ -114,10 +115,9 @@ mod alloc {
         let join_handle = {
             let barrier = Arc::clone(&barrier);
             thread::spawn(move || {
-                let v = vec![42u8; SIZE_M * MEGABYTES];
-                barrier.wait();
-                // Needed to prevent variable to optimize out
-                v.into_iter().sum::<u8>()
+                with_alloca_zeroed(SIZE_M * MEGABYTES, |_| {
+                    barrier.wait();
+                });
             })
         };
         Box::new(Stack(barrier, Some(join_handle)))
