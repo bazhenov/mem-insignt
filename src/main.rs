@@ -130,19 +130,19 @@ mod alloc {
 
     /// Allocates memory on the heap initialized with non-zero value
     ///
-    /// It matters, because on some OSes zeored memory might not be resident
+    /// It matters, because on some OSes zeroed memory might not be resident
     pub(super) fn heap_non_zero<const SIZE_M: usize>() -> Box<dyn Any> {
         let data = vec![42u8; SIZE_M * MEGABYTES];
         Box::new(data)
     }
 
-    /// Alocated uninitialized memory on the heap
+    /// Allocated uninitialized memory on the heap
     pub(super) fn heap_uninit<const SIZE_M: usize>() -> Box<dyn Any> {
         let data = vec![MaybeUninit::<u8>::uninit(); SIZE_M * MEGABYTES];
         Box::new(data)
     }
 
-    /// Memmory map a file of the given size
+    /// Memory map a file of the given size
     ///
     /// File is removed immediately
     pub(super) fn mmap_file<const SIZE_M: usize>() -> Box<dyn Any> {
@@ -164,7 +164,7 @@ mod alloc {
         Box::new(mmap)
     }
 
-    /// Memory map anonymous unitialized allocation
+    /// Memory map anonymous uninitialized allocation
     pub(super) fn mmap_anon_init<const SIZE_M: usize>() -> Box<dyn Any> {
         let size = SIZE_M * MEGABYTES;
         let mut mmap = MmapOptions::new().len(size).map_anon().unwrap();
